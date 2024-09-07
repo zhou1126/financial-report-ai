@@ -1,1 +1,6 @@
 streamlit
+sec_edgar_downloader
+bs4
+re
+openai
+pandas
