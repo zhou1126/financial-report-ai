@@ -15,8 +15,6 @@ st.title("Financial Report AI analyst")
 #     "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
 # )
 
-client = OpenAI(api_key = "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")
-
 # client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 st.session_state.ticker = st.text_input("**Enter the ticker**", value = "")
 print(st.session_state.ticker)
