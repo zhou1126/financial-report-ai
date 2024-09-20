@@ -49,20 +49,20 @@ if tgt_dir:
         # print(subdir)
         data_year = int(subdir.split("/")[-1].split("-")[1]) + 2000
         # print(data_year)
-        if data_year == year:
+        if data_year == st.session_state.year:
             right_subdir.append(subdir)
 
-    print(right_subdir)
+    # print(right_subdir)
 
     txt_files = find_txt_files(right_subdir)
-    print(txt_files)
+    # print(txt_files)
 
     for txt_file in txt_files:
         txt_file_name = txt_file.split("/")[-1].split(".")[0]
         if txt_file_name == 'full-submission':
             right_txt.append(txt_file)
 
-    print(right_txt)
+    # print(right_txt)
 
     if st.session_state.report_type == '10-K':
         for r_txt in right_txt[0:1]:
