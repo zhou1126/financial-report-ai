@@ -6,7 +6,7 @@ import re
 import pandas as pd
 from datetime import datetime
 
-from utility import get_dates_for_year, report_download, find_subdirectories, find_txt_files, item_extraction_10K, html_removal
+from utility import get_dates_for_year, report_download, find_subdirectories, find_txt_files, item_extraction_10K, html_removal, item_extraction_10Q
 
 from openai import OpenAI
 
@@ -42,91 +42,146 @@ tgt_dir = report_download(st.session_state.ticker, st.session_state.report_type,
 
 if tgt_dir:
     subdirectories = find_subdirectories(tgt_dir)
-    right_subdir = ''
-    right_txt = ''
+    right_subdir = []
+    right_txt = []
     # Print all subdirectories
     for subdir in subdirectories:
         # print(subdir)
         data_year = int(subdir.split("/")[-1].split("-")[1]) + 2000
         # print(data_year)
-        if data_year == st.session_state.year:
-            right_subdir = subdir
-    
+        if data_year == year:
+            right_subdir.append(subdir)
+
     print(right_subdir)
 
     txt_files = find_txt_files(right_subdir)
+    print(txt_files)
 
-    if len(txt_files) == 1:
-        right_txt = txt_files[0]
-    else: 
-        # Print all .txt files found
-        for txt_file in txt_files:
-            txt_file_name = txt_file.split("/")[-1].split(".")[0]
-            if txt_file_name == 'full-submission':
-                right_txt = txt_file
+    for txt_file in txt_files:
+        txt_file_name = txt_file.split("/")[-1].split(".")[0]
+        if txt_file_name == 'full-submission':
+            right_txt.append(txt_file)
 
     print(right_txt)
 
-    raw_1a, raw_7, raw_7a, raw_8 = item_extraction_10K(right_txt)
+    if st.session_state.report_type == '10-K':
+        for r_txt in right_txt[0:1]:
+            item1a_10k_raw, item7_10k_raw, item7a_10k_raw, item8_10k_raw = item_extraction_10K(r_txt)
+            polished_1a = html_removal(item1a_10k_raw)
+            polished_7 = html_removal(item7_10k_raw)
+            polished_7a = html_removal(item7a_10k_raw)
+            polished_8 = html_removal(item8_10k_raw)
 
-    polished_1a = html_removal(raw_1a)
-    polished_7 = html_removal(raw_7)
-    polished_7a = html_removal(raw_7a)
-    polished_8 = html_removal(raw_8)
+            management_prompt = '\n'.join([
+                'You are a financial analyst and you are going to read selected chapters of a 10-K report from a company. The following is the Item 1a, the Risk Factors.',
+                polished_1a,
+                'Item 7 Management Discussion and Analysis',
+                polished_7,
+                'Item 7a Quantitative and Qualitative Disclosures About Market Risk',
+                polished_7a,
+                'Summarize the following from the content you received: ',
+                'Main Strategies that the company is going to use',
+                'Main Market or Company Risks',
+                'Main Merger and Acquisition activities that have finalized or are being considered',
+                'New Organic Growth initiatives',
+                'Macroeconomics opportunities and concerns',
+                'If you do not find the corresponding data and say you do not find the data.'
+            ])
 
-    management_prompt = '\n'.join([
-        'You are a financial analyst and you are going to read selected chapters of a 10-K report from a company. The following is the Item 1a, the Risk Factors.',
-        polished_1a,
-        'Item 7 Management Discussion and Analysis',
-        polished_7,
-        'Item 7a Quantitative and Qualitative Disclosures About Market Risk',
-        polished_7a,
-        'Summarize the following from the content you received: ',
-        'Main Strategies that the company is going to use',
-        'Main Market or Company Risks',
-        'Main Merger and Acquisition activities that have finalized or are being considered',
-        'New Organic Growth initiatives',
-        'Macroeconomics opportunities and concerns',
-        'If you do not find the corresponding data and say you do not find the data.'
-    ])
+            financial_report_prompt = '\n'.join([
+                'You are a financial analyst and you are going to read Financial Statements and Supplementary Data of a 10-K report from a company. The data is as follows and contains the current year and previous year or years data.',
+                polished_8,
+                'Find the corresponding metric, Origination Dollar, Total Receivables, and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
+                'Find the corresponding metric, Revenue, Net Interest Margin total in dollar terms and per dollar receivable term, Charge-off in percentage of receivables, Operation expense in dollar terms and per dollar receivable, EBITDA, Cost of Fund,and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
+                'Main Merger and Acquisition activities that have finalized or are being considered',
+                'New Organic Growth initiatives',
+                'Macroeconomics opportunities and concerns',
+                'If you do not find the corresponding data and say you do not find the data.'
+            ])
 
-    financial_report_prompt = '\n'.join([
-        'You are a financial analyst and you are going to read Financial Statements and Supplementary Data of a 10-K report from a company. The data is as follows and contains the current year and previous year or years data.',
-        polished_8,
-        'Find the corresponding metric, Origination Dollar, Total Receivables, and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-        'Find the corresponding metric, Revenue, Net Interest Margin total in dollar terms and per dollar receivable term, Charge-off in percentage of receivables, Operation expense in dollar terms and per dollar receivable, EBITDA, Cost of Fund,and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-        'Main Merger and Acquisition activities that have finalized or are being considered',
-        'New Organic Growth initiatives',
-        'Macroeconomics opportunities and concerns',
-        'If you do not find the corresponding data and say you do not find the data.'
-    ])
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    # {"role": "system", "content": "You are a financial analyst"},
+                    {
+                        "role": "user",
+                        "content": management_prompt
+                    }
+                ],
+                stream=True
+            )
+            management_results = st.write_stream(completion)
+            # print(completion.choices[0].message.content)
 
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            # {"role": "system", "content": "You are a financial analyst"},
-            {
-                "role": "user",
-                "content": management_prompt
-            }
-        ],
-        stream=True
-    )
-    management_results = st.write_stream(completion)
-    # print(completion.choices[0].message.content)
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    # {"role": "system", "content": "You are a financial analyst"},
+                    {
+                        "role": "user",
+                        "content": financial_report_prompt
+                    }
+                ],
+                stream=True
+            )
 
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            # {"role": "system", "content": "You are a financial analyst"},
-            {
-                "role": "user",
-                "content": financial_report_prompt
-            }
-        ],
-        stream=True
-    )
+            report_results = st.write_stream(completion)
+    elif st.session_state.report_type == '10-Q':
+        for r_txt in right_txt[0:1]:
+            item1_10q_raw, item2_10q_raw, item3_10q_raw = item_extraction_10Q(r_txt)
+            polished_item1_10q = html_removal(item1_10q_raw)
+            polished_item2_10q = html_removal(item2_10q_raw)
+            polished_item3_10q = html_removal(item3_10q_raw)
 
-    report_results = st.write_stream(completion)
+            management_prompt_10Q = '\n'.join([
+                'You are a financial analyst and you are going to read selected chapters of a 10-Q report from a company. The following is the Item 2, Management’s Discussion and Analysis of Financial Condition and Results of Operations.',
+                polished_item2_10q,
+                'Item 3 Quantitative and Qualitative Disclosures About Market Risk',
+                polished_item3_10q,
+                'Summarize the following from the content you received: ',
+                'Main Strategies that the company is going to use',
+                'Main Market or Company Risks',
+                'Main Merger and Acquisition activities that have finalized or are being considered',
+                'New Organic Growth initiatives',
+                'Macroeconomics opportunities and concerns',
+                'If you do not find the corresponding data and say you do not find the data.'
+            ])
 
-    # print(compldfetion.choices[0].message.content)
+            financial_report_prompt_10Q = '\n'.join([
+                'You are a financial analyst and you are going to read Financial Statements and Supplementary Data of a 10-Q report from a company. The data is as follows and contains the current year and previous year or years data.',
+                polished_item1_10q,
+                'Find the corresponding metric, Origination Dollar, Total Receivables, and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
+                'Find the corresponding metric, Revenue, Net Interest Margin total in dollar terms and per dollar receivable term, Charge-off in percentage of receivables, Operation expense in dollar terms and per dollar receivable, EBITDA, Cost of Fund,and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
+                'Main Merger and Acquisition activities that have finalized or are being considered',
+                'New Organic Growth initiatives',
+                'Macroeconomics opportunities and concerns',
+                'If you do not find the corresponding data and say you do not find the data.'
+            ])
+
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    # {"role": "system", "content": "You are a financial analyst"},
+                    {
+                        "role": "user",
+                        "content": management_prompt_10Q
+                    }
+                ],
+                stream=True
+            )
+            management_results_10Q = st.write_stream(completion)
+            # print(completion.choices[0].message.content)
+
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    # {"role": "system", "content": "You are a financial analyst"},
+                    {
+                        "role": "user",
+                        "content": financial_report_prompt_10Q
+                    }
+                ],
+                stream=True
+            )
+
+            report_results_10Q = st.write_stream(completion)

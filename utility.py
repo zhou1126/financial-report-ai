@@ -57,7 +57,7 @@ def find_txt_files(directory):
     
     return txt_files
 
-def item_extraction_10K(txt_data): 
+def prep_txt(txt_data, report_type):
 
     with open(txt_data, 'r', encoding='utf-8') as f:
         text_content = f.read()
@@ -81,14 +81,20 @@ def item_extraction_10K(txt_data):
     ### Once we have have this, it returns String Array, below line will with find content after <TYPE> ie, '10-K' 
     ### as section names
     doc_types = [x[len('<TYPE>'):] for x in type_pattern.findall(text_content)]
-
+    # print(doc_types)
     document = {}
 
     # Create a loop to go through each section type and save only the 10-K section in the dictionary
     for doc_type, doc_start, doc_end in zip(doc_types, doc_start_is, doc_end_is):
-        if doc_type == '10-K':
+        if doc_type == report_type:
             document[doc_type] = text_content[doc_start:doc_end]
 
+    return document[report_type]
+
+def item_extraction_10K(txt_data): 
+
+    document = {}
+    document['10-K'] = prep_txt(txt_data, '10-K')
     # Write the regex
     regex = re.compile(r'(>Item(\s|&#160;|&nbsp;)(1A|1B|1C|7A|7|8|9A)\.{0,1})|(ITEM\s(1A|1B|1C|7A|7|8|9A))')
 
@@ -136,6 +142,56 @@ def item_extraction_10K(txt_data):
     item_8_raw = document['10-K'][pos_dat['start'].loc['item8']:pos_dat['start'].loc['item9a']]
 
     return item_1a_raw, item_7_raw, item_7a_raw, item_8_raw
+
+def item_extraction_10Q(txt_data): 
+
+    document = {}
+    document['10-Q'] = prep_txt(txt_data, '10-Q')
+
+    # Write the regex
+    regex = re.compile(r'(>ITEM(\s|&#160;|&nbsp;)(1|2|3|4)\.{0,1})|(ITEM\s(1|2|3|4))')
+
+    # Use finditer to math the regex
+    matches = regex.finditer(document['10-Q'])
+
+    # print(matches)
+
+    # Create the dataframe
+    test_df = pd.DataFrame([(x.group(), x.start(), x.end()) for x in matches])
+    # print(test_df)
+
+    test_df.columns = ['item', 'start', 'end']
+    test_df['item'] = test_df.item.str.lower()
+    test_df = test_df.loc[test_df.groupby('item')['start'].idxmin()].reset_index(drop=True)
+    # print(test_df)
+
+    # Get rid of unnesesary charcters from the dataframe
+    test_df.replace('&#160;',' ',regex=True,inplace=True)
+    test_df.replace('&nbsp;',' ',regex=True,inplace=True)
+    test_df.replace(' ','',regex=True,inplace=True)
+    test_df.replace('\.','',regex=True,inplace=True)
+    test_df.replace('>','',regex=True,inplace=True)
+
+    # Drop duplicates
+    pos_dat = test_df.sort_values('start', ascending=True).drop_duplicates(subset=['item'], keep='first')
+
+    # Set item as the dataframe index
+    pos_dat.set_index('item', inplace=True)
+    # print(pos_dat)
+
+    # Get Item 1 FINANCIAL STATEMENTS
+    item_1_raw = document['10-Q'][pos_dat['start'].loc['item1']:pos_dat['start'].loc['item2']]
+    # print(item_1a_raw)
+
+    # # Get Item 2 Management’s Discussion and Analysis of Financial Condition and Results of Operations
+    item_2_raw = document['10-Q'][pos_dat['start'].loc['item2']:pos_dat['start'].loc['item3']]
+    # print(item_1a_raw)
+
+    # # Get Item 3 Quantitative and Qualitative Disclosures About Market Risk
+    item_3_raw = document['10-Q'][pos_dat['start'].loc['item3']:pos_dat['start'].loc['item4']]
+    # print(item_3_raw)
+
+    return item_1_raw, item_2_raw, item_3_raw
 
 def html_removal(raw_source):
     source = BeautifulSoup(raw_source, 'html.parser')
