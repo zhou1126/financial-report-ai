@@ -6,7 +6,7 @@ import re
 import pandas as pd
 from datetime import datetime
 
-from utility import get_dates_for_year, report_download, find_subdirectories, find_txt_files, item_extraction, html_removal
+from utility import get_dates_for_year, report_download, find_subdirectories, find_txt_files, item_extraction_10K, html_removal
 
 from openai import OpenAI
 
@@ -22,7 +22,7 @@ print(st.session_state.ticker)
 
 st.session_state.report_type = st.selectbox(
                                                 "Which report do you want AI to analyze?",
-                                                ("10-K"),
+                                                ("10-K", "10-Q"),
                                             )
 # st.write("You selected:", st.session_state.report_type)
 
@@ -67,7 +67,7 @@ if tgt_dir:
 
     print(right_txt)
 
-    raw_1a, raw_7, raw_7a, raw_8 = item_extraction(right_txt)
+    raw_1a, raw_7, raw_7a, raw_8 = item_extraction_10K(right_txt)
 
     polished_1a = html_removal(raw_1a)
     polished_7 = html_removal(raw_7)

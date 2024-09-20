@@ -28,10 +28,10 @@ def report_download(ticker, report_type, account_email, after_date, before_date)
         dl.get(report_type, ticker, after=after_date, before=before_date)
         base_dir = os.getcwd()
         target_dir = os.path.join(base_dir, "sec-edgar-filings", ticker, report_type)
-        print(f"Downloading 10-K filings for {ticker} between {after_date} and {before_date}...")
-        print(f"Successfully downloaded 10-K filings for {ticker} between {after_date} and {before_date}")
+        print(f"Downloading {report_type} filings for {ticker} between {after_date} and {before_date}...")
+        print(f"Successfully downloaded {report_type} filings for {ticker} between {after_date} and {before_date}")
     except Exception as e:
-            print(f"Error downloading 10-K filings for {ticker}: {e}")
+            print(f"Error downloading {report_type} filings for {ticker}: {e}")
     return target_dir
 
 def find_subdirectories(tgt_dir):
@@ -47,16 +47,17 @@ def find_txt_files(directory):
     txt_files = []
     
     # Walk through the directory
-    for root, dirs, files in os.walk(directory):
-        for file_name in files:
-            # Check if the file has a .txt extension
-            if file_name.endswith('.txt'):
-                # Add the full path of the .txt file to the list
-                txt_files.append(os.path.join(root, file_name))
+    for dir_pick in directory:
+        for root, dirs, files in os.walk(dir_pick):
+            for file_name in files:
+                # Check if the file has a .txt extension
+                if file_name.endswith('.txt'):
+                    # Add the full path of the .txt file to the list
+                    txt_files.append(os.path.join(root, file_name))
     
     return txt_files
 
-def item_extraction(txt_data): 
+def item_extraction_10K(txt_data): 
 
     with open(txt_data, 'r', encoding='utf-8') as f:
         text_content = f.read()
