@@ -125,6 +125,8 @@ def item_extraction_10K(txt_data):
     pos_dat.set_index('item', inplace=True)
 
     # print(pos_dat)
+    # Get start 
+    item_start_raw = document['10-K'][0:pos_dat['start'].loc['item1a']]
 
     # Get Item 1a Risk Factors
     item_1a_raw = document['10-K'][pos_dat['start'].loc['item1a']:pos_dat['start'].loc['item1b']]
@@ -141,7 +143,7 @@ def item_extraction_10K(txt_data):
     # Get Item 8 Financial Statements and Supplementary Data
     item_8_raw = document['10-K'][pos_dat['start'].loc['item8']:pos_dat['start'].loc['item9a']]
 
-    return item_1a_raw, item_7_raw, item_7a_raw, item_8_raw
+    return item_start_raw, item_1a_raw, item_7_raw, item_7a_raw, item_8_raw
 
 def item_extraction_10Q(txt_data): 
 
@@ -179,6 +181,9 @@ def item_extraction_10Q(txt_data):
     pos_dat.set_index('item', inplace=True)
     # print(pos_dat)
 
+    # Get start 
+    item_start_raw = document['10-Q'][0:pos_dat['start'].loc['item1']]
+
     # Get Item 1 FINANCIAL STATEMENTS
     item_1_raw = document['10-Q'][pos_dat['start'].loc['item1']:pos_dat['start'].loc['item2']]
     # print(item_1a_raw)
@@ -191,7 +196,7 @@ def item_extraction_10Q(txt_data):
     item_3_raw = document['10-Q'][pos_dat['start'].loc['item3']:pos_dat['start'].loc['item4']]
     # print(item_3_raw)
 
-    return item_1_raw, item_2_raw, item_3_raw
+    return item_start_raw, item_1_raw, item_2_raw, item_3_raw
 
 def html_removal(raw_source):
     source = BeautifulSoup(raw_source, 'html.parser')
