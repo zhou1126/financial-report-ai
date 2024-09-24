@@ -8,7 +8,9 @@ account_email = 'zhou60302@gmail.com'
 year = 2024
 after_date, before_date = get_dates_for_year(year)
 report_type = '10-Q'
-ticker = 'TSLA'
+ticker = 'DLTR'
+# ticker = 'TSLA'
+# ticker = 'BRC'
 print(after_date, before_date)
 tgt_dir = report_download(ticker, report_type, account_email, after_date, before_date)
 print(tgt_dir)
@@ -40,10 +42,17 @@ print(right_txt)
 for r_txt in right_txt[0:1]:
     print(r_txt)
     if report_type == '10-K':
-        item_extraction_10K(r_txt)
+        start_10k_raw, item1a_10k_raw, item7_10k_raw, item7a_10k_raw, item8_10k_raw = item_extraction_10K(r_txt)
+        polished_start_10k = html_removal(start_10k_raw)
+        polished_1a = html_removal(item1a_10k_raw)
+        polished_7 = html_removal(item7_10k_raw)
+        polished_7a = html_removal(item7a_10k_raw)
+        polished_8 = html_removal(item8_10k_raw)
+        # print(polished_7)
     elif report_type == '10-Q':
-        item1_10q_raw, item2_10q_raw, item3_10q_raw = item_extraction_10Q(r_txt)
+        start_10q_raw, item1_10q_raw, item2_10q_raw, item3_10q_raw = item_extraction_10Q(r_txt)
+        polished_start_10q = html_removal(start_10q_raw)
         polished_item1_10q = html_removal(item1_10q_raw)
         polished_item2_10q = html_removal(item2_10q_raw)
         polished_item3_10q = html_removal(item3_10q_raw)
-        print(polished_item3_10q)
+        # print(polished_item3_10q)

@@ -82,13 +82,15 @@ def prep_txt(txt_data, report_type):
     ### as section names
     doc_types = [x[len('<TYPE>'):] for x in type_pattern.findall(text_content)]
     # print(doc_types)
+    # print(report_type)
     document = {}
 
     # Create a loop to go through each section type and save only the 10-K section in the dictionary
     for doc_type, doc_start, doc_end in zip(doc_types, doc_start_is, doc_end_is):
+        print(doc_type, doc_start, doc_end)
         if doc_type == report_type:
             document[doc_type] = text_content[doc_start:doc_end]
-
+            break  
     return document[report_type]
 
 def item_extraction_10K(txt_data): 
@@ -101,15 +103,13 @@ def item_extraction_10K(txt_data):
     # Use finditer to math the regex
     matches = regex.finditer(document['10-K'])
 
-    print(matches)
+    # print(matches)
 
     # Create the dataframe
     test_df = pd.DataFrame([(x.group(), x.start(), x.end()) for x in matches])
 
     test_df.columns = ['item', 'start', 'end']
     test_df['item'] = test_df.item.str.lower()
-
-    test_df = test_df.loc[test_df.groupby('item')['start'].idxmax()].reset_index(drop=True)
 
     # Get rid of unnesesary charcters from the dataframe
     test_df.replace('&#160;',' ',regex=True,inplace=True)
@@ -118,8 +118,62 @@ def item_extraction_10K(txt_data):
     test_df.replace('\.','',regex=True,inplace=True)
     test_df.replace('>','',regex=True,inplace=True)
 
+    # Initialize lists to store the cleaned data
+    cleaned_items = []
+    cleaned_starts = []
+    cleaned_ends = []
+
+    # Define the correct order of items
+    correct_order = ['item1a', 'item1b', 'item1c', 'item7', 'item7a', 'item8', 'item9']
+
+    # Initialize variables to keep track of the last valid position and item
+    last_end = 0
+    last_item = None
+
+    # Iterate through the correct order
+    for item in correct_order:
+        # Find all rows for the current item
+        item_rows = test_df[test_df['item'].str.startswith(item)]
+        
+        for _, row in item_rows.iterrows():
+            # Check if the current start is greater than the last end
+            if row['start'] > last_end:
+                # For item1b, check if it starts at least 100000 after item1a
+                if item == 'item1b' and last_item == 'item1a' and row['start'] < last_end + 100000:
+                    continue
+                
+                # Add the item to the cleaned data
+                cleaned_items.append(row['item'])
+                cleaned_starts.append(row['start'])
+                cleaned_ends.append(row['end'])
+                
+                # Update the last end position and item
+                last_end = row['end']
+                last_item = item
+                
+                # Break the loop as we only want one instance of each item
+                break
+
+    # Create a new DataFrame with the cleaned data
+    cleaned_data = pd.DataFrame({
+        'item': cleaned_items,
+        'start': cleaned_starts,
+        'end': cleaned_ends
+    })
+    print(cleaned_data)
+
+    # WORKING FOR TSLA, COULD BE IDXMIN
+    #######################################################################################################
+    # test_df.to_csv('test_2.csv', index = False)
+    # test_df = test_df.sort_values(by = ['item', 'start'], ascending= True)
+    # print(test_df)
+    # # test_df = test_df.loc[test_df.groupby('item')['start'].idxmax()].reset_index(drop=True)
+    # test_df = test_df.loc[test_df.groupby('item')['start'].idxmax()].reset_index(drop=True)
+    # print(test_df)
+    # pos_dat = test_df.sort_values('start', ascending=True).drop_duplicates(subset=['item'], keep='last')
+    #######################################################################################################
     # Drop duplicates
-    pos_dat = test_df.sort_values('start', ascending=True).drop_duplicates(subset=['item'], keep='last')
+    pos_dat = cleaned_data.sort_values('start', ascending=True).drop_duplicates(subset=['item'], keep='last')
 
     # Set item as the dataframe index
     pos_dat.set_index('item', inplace=True)
@@ -151,7 +205,7 @@ def item_extraction_10Q(txt_data):
     document['10-Q'] = prep_txt(txt_data, '10-Q')
 
     # Write the regex
-    regex = re.compile(r'(>ITEM(\s|&#160;|&nbsp;)(1|2|3|4)\.{0,1})|(ITEM\s(1|2|3|4))')
+    regex = re.compile(r'(>Item(\s|&#160;|&nbsp;)(1|2|3|4)\.{0,1})|(ITEM\s(1|2|3|4))|(Item\s(1|2|3|4))')
 
     # Use finditer to math the regex
     matches = regex.finditer(document['10-Q'])
@@ -164,7 +218,7 @@ def item_extraction_10Q(txt_data):
 
     test_df.columns = ['item', 'start', 'end']
     test_df['item'] = test_df.item.str.lower()
-    test_df = test_df.loc[test_df.groupby('item')['start'].idxmin()].reset_index(drop=True)
+    # test_df = test_df.loc[test_df.groupby('item')['start'].idxmin()].reset_index(drop=True)
     # print(test_df)
 
     # Get rid of unnesesary charcters from the dataframe
@@ -173,9 +227,71 @@ def item_extraction_10Q(txt_data):
     test_df.replace(' ','',regex=True,inplace=True)
     test_df.replace('\.','',regex=True,inplace=True)
     test_df.replace('>','',regex=True,inplace=True)
+    print(test_df)
+    # Work for TSLA
+    ############################################################################################################
+    # test_df = test_df.sort_values(by = ['item', 'start'], ascending= True)
+    # print(test_df)
+    # # test_df = test_df.loc[test_df.groupby('item')['start'].idxmax()].reset_index(drop=True)
+    # test_df = test_df.loc[test_df.groupby('item')['start'].idxmin()].reset_index(drop=True)
+    # print(test_df)
+    # pos_dat = test_df.sort_values('start', ascending=True).drop_duplicates(subset=['item'], keep='first')
+    ############################################################################################################
+
+    # Initialize lists to store the cleaned data
+    cleaned_items = []
+    cleaned_starts = []
+    cleaned_ends = []
+
+    # Define the correct order of items
+    correct_order = ['item1', 'item2', 'item3', 'item4']
+
+    # Initialize variables to keep track of the last valid position and item
+    last_end = 0
+    last_item = None
+
+    # Iterate through the correct order
+    for item in correct_order:
+        # Find all rows for the current item
+        item_rows = test_df[test_df['item'].str.startswith(item)]
+        print(item_rows)
+        if not item_rows.empty:
+            for _, row in item_rows.iterrows():
+                print(row['start'], last_end)
+                # Check if the current start is greater than the last end
+                if row['start'] > last_end:
+                    # For item2, check if it starts at least 100000 after item1
+                    if item == 'item2' and last_item == 'item1' and row['start'] < last_end + 100000:
+                        continue
+                    
+                    # Add the item to the cleaned data
+                    cleaned_items.append(row['item'])
+                    cleaned_starts.append(row['start'])
+                    cleaned_ends.append(row['end'])
+                    
+                    # Update the last end position and item
+                    last_end = row['end']
+                    last_item = item
+                    
+                    # Break the loop as we only want one instance of each item
+                    break
+                # If the item is not found and it's item3, use the end of item2
+        if item not in cleaned_items:
+            cleaned_items.append(item)
+            cleaned_starts.append(last_end)
+            cleaned_ends.append(last_end)
+            last_item = item
+
+    # Create a new DataFrame with the cleaned data
+    cleaned_data = pd.DataFrame({
+        'item': cleaned_items,
+        'start': cleaned_starts,
+        'end': cleaned_ends
+    })
+    print(cleaned_data)
 
     # Drop duplicates
-    pos_dat = test_df.sort_values('start', ascending=True).drop_duplicates(subset=['item'], keep='first')
+    pos_dat = cleaned_data.sort_values('start', ascending=True).drop_duplicates(subset=['item'], keep='first')
 
     # Set item as the dataframe index
     pos_dat.set_index('item', inplace=True)
