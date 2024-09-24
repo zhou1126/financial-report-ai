@@ -9,6 +9,14 @@ year = 2024
 after_date, before_date = get_dates_for_year(year)
 report_type = '10-Q'
 ticker = 'DLTR'
+
+# Yixiang cases
+# 'OMF', 'DFS', 'COF'
+# test cases
+# 'DLTR', 'TSLA', 'BRC'
+# failed
+# 'NIO'
+
 # ticker = 'TSLA'
 # ticker = 'BRC'
 print(after_date, before_date)
