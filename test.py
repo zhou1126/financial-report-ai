@@ -7,8 +7,8 @@ from utility import report_download, get_dates_for_year, find_subdirectories, fi
 account_email = 'zhou60302@gmail.com'
 year = 2024
 after_date, before_date = get_dates_for_year(year)
-report_type = '10-Q'
-ticker = 'DLTR'
+report_type = '10-K'
+ticker = 'COF'
 
 # Yixiang cases
 # 'OMF', 'DFS', 'COF'

@@ -131,28 +131,61 @@ def item_extraction_10K(txt_data):
     last_item = None
 
     # Iterate through the correct order
+
     for item in correct_order:
         # Find all rows for the current item
         item_rows = test_df[test_df['item'].str.startswith(item)]
+        print(item_rows)
+        if not item_rows.empty:
+            for _, row in item_rows.iterrows():
+                print(row['start'], last_end)
+                # Check if the current start is greater than the last end
+                if row['start'] > last_end:
+                    # For item2, check if it starts at least 100000 after item1
+                    if item == 'item1b' and last_item == 'item1a' and row['start'] < last_end + 100000:
+                        continue
+                    
+                    # Add the item to the cleaned data
+                    cleaned_items.append(row['item'])
+                    cleaned_starts.append(row['start'])
+                    cleaned_ends.append(row['end'])
+                    
+                    # Update the last end position and item
+                    last_end = row['end']
+                    last_item = item
+                    
+                    # Break the loop as we only want one instance of each item
+                    break
+                # If the item is not found and it's item3, use the end of item2
+        if item not in cleaned_items:
+            cleaned_items.append(item)
+            cleaned_starts.append(last_end)
+            cleaned_ends.append(last_end)
+            last_item = item
+
+
+    # for item in correct_order:
+    #     # Find all rows for the current item
+    #     item_rows = test_df[test_df['item'].str.startswith(item)]
         
-        for _, row in item_rows.iterrows():
-            # Check if the current start is greater than the last end
-            if row['start'] > last_end:
-                # For item1b, check if it starts at least 100000 after item1a
-                if item == 'item1b' and last_item == 'item1a' and row['start'] < last_end + 100000:
-                    continue
+    #     for _, row in item_rows.iterrows():
+    #         # Check if the current start is greater than the last end
+    #         if row['start'] > last_end:
+    #             # For item1b, check if it starts at least 100000 after item1a
+    #             if item == 'item1b' and last_item == 'item1a' and row['start'] < last_end + 100000:
+    #                 continue
                 
-                # Add the item to the cleaned data
-                cleaned_items.append(row['item'])
-                cleaned_starts.append(row['start'])
-                cleaned_ends.append(row['end'])
+    #             # Add the item to the cleaned data
+    #             cleaned_items.append(row['item'])
+    #             cleaned_starts.append(row['start'])
+    #             cleaned_ends.append(row['end'])
                 
-                # Update the last end position and item
-                last_end = row['end']
-                last_item = item
+    #             # Update the last end position and item
+    #             last_end = row['end']
+    #             last_item = item
                 
-                # Break the loop as we only want one instance of each item
-                break
+    #             # Break the loop as we only want one instance of each item
+    #             break
 
     # Create a new DataFrame with the cleaned data
     cleaned_data = pd.DataFrame({
