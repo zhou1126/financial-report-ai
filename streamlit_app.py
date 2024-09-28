@@ -7,16 +7,13 @@ import pandas as pd
 from datetime import datetime
 
 from utility import get_dates_for_year, report_download, find_subdirectories, find_txt_files, item_extraction_10K, html_removal, item_extraction_10Q
-from utility import starter_prompt, management_prompt_gen, financial_prompt_gen
+from utility import starter_prompt, management_prompt_gen, financial_prompt_gen, financial_analysis_report
 from openai import OpenAI
 
 st.title("Financial Report AI analyst")
-# st.write(
-#     "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
-# )
 
 # no api key
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 st.session_state.ticker = st.text_input("**Enter the ticker**", value = "")
 print(st.session_state.ticker)
 
@@ -68,7 +65,6 @@ if st.run_button:
                 right_txt.append(txt_file)
 
         # print(right_txt)
-
         if st.session_state.report_type == '10-K':
             for r_txt in right_txt[0:1]:
                 start_10k_raw, item1a_10k_raw, item7_10k_raw, item7a_10k_raw, item8_10k_raw = item_extraction_10K(r_txt)
@@ -83,51 +79,14 @@ if st.run_button:
                 start_prompt_10K = starter_prompt(polished_start_10k, '10-K')
 
                 # Load management analysis prompt for strategy analysis
-                management_prompt = management_prompt_gen(polished_1a, polished_7, polished_7a, '10-K')        
+                management_prompt_10K = management_prompt_gen(polished_1a, polished_7, polished_7a, '10-K')        
 
                 # Load financial metrics
-                financial_report_prompt = financial_prompt_gen(polished_8, '10-K')
+                financial_report_prompt_10K = financial_prompt_gen(polished_8, '10-K')
 
-                completion = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        # {"role": "system", "content": "You are a financial analyst"},
-                        {
-                            "role": "user",
-                            "content": start_prompt_10K
-                        }
-                    ],
-                    stream=True
-                )
-                start_results_10K = st.write_stream(completion)
+                # Show results
+                start_results_10K, management_results_10K, report_results_10K = financial_analysis_report(start_prompt_10K, management_prompt_10K, financial_report_prompt_10K)
 
-                completion = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        # {"role": "system", "content": "You are a financial analyst"},
-                        {
-                            "role": "user",
-                            "content": management_prompt
-                        }
-                    ],
-                    stream=True
-                )
-                management_results = st.write_stream(completion)
-                # print(completion.choices[0].message.content)
-
-                completion = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        # {"role": "system", "content": "You are a financial analyst"},
-                        {
-                            "role": "user",
-                            "content": financial_report_prompt
-                        }
-                    ],
-                    stream=True
-                )
-
-                report_results = st.write_stream(completion)
         elif st.session_state.report_type == '10-Q':
             for r_txt in right_txt[0:]:
                 start_10q_raw, item1_10q_raw, item2_10q_raw, item3_10q_raw = item_extraction_10Q(r_txt)
@@ -145,44 +104,7 @@ if st.run_button:
                 
                 # Load financial metrics
                 financial_report_prompt_10Q = financial_prompt_gen(polished_item1_10q, '10-Q')
+
+                # results_showing_in_UI
+                start_results_10Q, management_results_10Q, report_results_10Q = financial_analysis_report(start_prompt_10Q, management_prompt_10Q, financial_report_prompt_10Q)
                 
-                completion = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        # {"role": "system", "content": "You are a financial analyst"},
-                        {
-                            "role": "user",
-                            "content": start_prompt_10Q
-                        }
-                    ],
-                    stream=True
-                )
-                start_results_10Q = st.write_stream(completion)
-
-                completion = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        # {"role": "system", "content": "You are a financial analyst"},
-                        {
-                            "role": "user",
-                            "content": management_prompt_10Q
-                        }
-                    ],
-                    stream=True
-                )
-                management_results_10Q = st.write_stream(completion)
-                # print(completion.choices[0].message.content)
-
-                completion = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        # {"role": "system", "content": "You are a financial analyst"},
-                        {
-                            "role": "user",
-                            "content": financial_report_prompt_10Q
-                        }
-                    ],
-                    stream=True
-                )
-
-                report_results_10Q = st.write_stream(completion)

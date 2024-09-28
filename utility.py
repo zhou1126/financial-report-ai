@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 import re
 import pandas as pd
 from datetime import datetime
+from openai import OpenAI
+import streamlit as st
 
 def get_dates_for_year(year):
     current_year = datetime.now().year
@@ -417,28 +419,63 @@ def management_prompt_gen(content1, content2, content3, report_type):
     return return_prompt
 
 def financial_prompt_gen(content, report_type):
-    if report_type == '10-K':
-        return_prompt = '\n'.join([
-                    f'You are a financial analyst and you are going to read Financial Statements and Supplementary Data of a {report_type} report from a company. The data is as follows and contains the current year and previous year or years data.',
-                    content,
-                    'Find the corresponding metric, Origination Dollar, Total Receivables, and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-                    'Find the corresponding metric, Revenue, Net Interest Margin total in dollar terms and per dollar receivable term, Charge-off in percentage of receivables, Operation expense in dollar terms and per dollar receivable, EBITDA, Cost of Fund,and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-                    'Main Merger and Acquisition activities that have finalized or are being considered',
-                    'New Organic Growth initiatives',
-                    'Macroeconomics opportunities and concerns',
-                    'If you do not find the corresponding data and say you do not find the data.'
-                ])
-    elif report_type == '10-Q':
-        return_prompt = '\n'.join([
-                    f'You are a financial analyst and you are going to read Financial Statements and Supplementary Data of a {report_type} report from a company. The data is as follows and contains the current year and previous year or years data.',
-                    content,
-                    'Find the corresponding metric, Origination Dollar, Total Receivables, and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-                    'Find the corresponding metric, Revenue, Net Interest Margin total in dollar terms and per dollar receivable term, Charge-off in percentage of receivables, Operation expense in dollar terms and per dollar receivable, EBITDA, Cost of Fund,and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-                    'Main Merger and Acquisition activities that have finalized or are being considered',
-                    'New Organic Growth initiatives',
-                    'Macroeconomics opportunities and concerns',
-                    'If you do not find the corresponding data and say you do not find the data.'
-                ])
+    common_prompts = [
+        f"You are a financial analyst reviewing the {report_type} report of a company. Analyze the following financial data, focusing on key metrics and their trends:",
+        content,
+        "1. Growth Metrics:",
+        "   a) Origination Dollar: Provide YoY and QoQ growth rates.",
+        "   b) Total Receivables: Provide YoY and QoQ growth rates.",
+        "2. Profitability Metrics:",
+        "   a) Revenue: State the amount and calculate YoY and QoQ growth rates.",
+        "   b) Net Interest Margin: Provide total dollar amount and per dollar receivable. Calculate YoY and QoQ changes.",
+        "   c) EBITDA: State the amount and calculate YoY and QoQ growth rates.",
+        "3. Efficiency Metrics:",
+        "   a) Charge-off as a percentage of receivables: State the percentage and note any YoY or QoQ changes.",
+        "   b) Operating expenses: Provide total dollar amount and per dollar receivable. Calculate YoY and QoQ changes.",
+        "   c) Cost of Funds: State the percentage and note any YoY or QoQ changes.",
+        "4. Strategic Initiatives:",
+        "   a) Summarize any completed or potential Merger and Acquisition activities.",
+        "   b) Outline new Organic Growth initiatives.",
+        "5. Market Analysis:",
+        "   a) Identify macroeconomic opportunities that could benefit the company.",
+        "   b) Highlight macroeconomic concerns that could pose risks to the company.",
+        "6. Financial Health Assessment:",
+        "   Provide an overall assessment of the company's financial health based on the above metrics.",
+        "7. Forward-Looking Statement:",
+        "   Based on the data and trends, provide a brief outlook for the company's next quarter or year.",
+        "If any of the requested data is not available, clearly state which information is missing."
+    ]
+
+    if report_type in ['10-K', '10-Q']:
+        return '\n'.join(common_prompts)
     else:
-        return_prompt = 'Please show we did not receive any information'
-    return return_prompt
+        return "Error: Unsupported report type. Please provide either a 10-K or 10-Q report."
+
+def financial_analysis_report(prompt1, prompt2, prompt3):
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    
+    system_message = {"role": "system", "content": "You are an expert financial analyst providing detailed and accurate financial insights."}
+    
+    def generate_analysis(prompt):
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",  # Using a more capable model for financial analysis
+            messages=[
+                system_message,
+                {"role": "user", "content": prompt}
+            ],
+            stream=True,
+            temperature=0,  # Lower temperature for more focused and consistent output
+            # max_tokens=10000  # Adjust based on the desired length of each analysis section
+        )
+        return st.write_stream(completion)
+
+    st.subheader("Initial Financial Analysis")
+    start_results = generate_analysis(prompt1)
+
+    st.subheader("Management Performance Evaluation")
+    management_results = generate_analysis(prompt2)
+
+    st.subheader("Financial Report Summary")
+    report_results = generate_analysis(prompt3)
+
+    return start_results, management_results, report_results
