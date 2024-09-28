@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime
 
 from utility import get_dates_for_year, report_download, find_subdirectories, find_txt_files, item_extraction_10K, html_removal, item_extraction_10Q
-
+from utility import starter_prompt, management_prompt_gen, financial_prompt_gen
 from openai import OpenAI
 
 st.title("Financial Report AI analyst")
@@ -79,44 +79,14 @@ if st.run_button:
                 polished_7a = html_removal(item7a_10k_raw)
                 polished_8 = html_removal(item8_10k_raw)
 
-                start_prompt_10K = '\n'.join([
-                    'You are a financial analyst and you are going to read selected chapters of a 10-K report from a company. The following is the introduction of the company and the publish date of the 10-K.',
-                    polished_start_10k,
-                    'Summarize the following from the content you received with a title of "Basic information about the form and company": ',
-                    'Company Name: ',
-                    'Company Address: ',
-                    'Trading Symbol(s): ',
-                    'Name of each exchange on which registered: ',
-                    'Commission File Number: ',
-                    'For the Quarterly Period Ended: ',
-                ])
+                # Load start prompt
+                start_prompt_10K = starter_prompt(polished_start_10k, '10-K')
 
-                management_prompt = '\n'.join([
-                    'You are a financial analyst and you are going to read selected chapters of a 10-K report from a company. The following is the Item 1a, the Risk Factors.',
-                    polished_1a,
-                    'Item 7 Management Discussion and Analysis',
-                    polished_7,
-                    'Item 7a Quantitative and Qualitative Disclosures About Market Risk',
-                    polished_7a,
-                    'Summarize the following from the content you received: ',
-                    'Main Strategies that the company is going to use',
-                    'Main Market or Company Risks',
-                    'Main Merger and Acquisition activities that have finalized or are being considered',
-                    'New Organic Growth initiatives',
-                    'Macroeconomics opportunities and concerns',
-                    'If you do not find the corresponding data and say you do not find the data.'
-                ])
+                # Load management analysis prompt for strategy analysis
+                management_prompt = management_prompt_gen(polished_1a, polished_7, polished_7a, '10-K')        
 
-                financial_report_prompt = '\n'.join([
-                    'You are a financial analyst and you are going to read Financial Statements and Supplementary Data of a 10-K report from a company. The data is as follows and contains the current year and previous year or years data.',
-                    polished_8,
-                    'Find the corresponding metric, Origination Dollar, Total Receivables, and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-                    'Find the corresponding metric, Revenue, Net Interest Margin total in dollar terms and per dollar receivable term, Charge-off in percentage of receivables, Operation expense in dollar terms and per dollar receivable, EBITDA, Cost of Fund,and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-                    'Main Merger and Acquisition activities that have finalized or are being considered',
-                    'New Organic Growth initiatives',
-                    'Macroeconomics opportunities and concerns',
-                    'If you do not find the corresponding data and say you do not find the data.'
-                ])
+                # Load financial metrics
+                financial_report_prompt = financial_prompt_gen(polished_8, '10-K')
 
                 completion = client.chat.completions.create(
                     model="gpt-4o-mini",
@@ -167,43 +137,15 @@ if st.run_button:
                 polished_item2_10q = html_removal(item2_10q_raw)
                 polished_item3_10q = html_removal(item3_10q_raw)
 
-                start_prompt_10Q = '\n'.join([
-                    'You are a financial analyst and you are going to read selected chapters of a 10-K report from a company. The following is the introduction of the company and the publish date of the 10-K.',
-                    polished_start_10q,
-                    'Summarize the following from the content you received: ',
-                    'Company Name: ',
-                    'Company Address: ',
-                    'Trading Symbol(s): ',
-                    'Name of each exchange on which registered: ',
-                    'Commission File Number: ',
-                    'For the Quarterly Period Ended: '
-                ])
+                # Load start prompt
+                start_prompt_10Q = starter_prompt(polished_start_10q, '10-Q')
 
-                management_prompt_10Q = '\n'.join([
-                    'You are a financial analyst and you are going to read selected chapters of a 10-Q report from a company. The following is the Item 2, Management’s Discussion and Analysis of Financial Condition and Results of Operations.',
-                    polished_item2_10q,
-                    'Item 3 Quantitative and Qualitative Disclosures About Market Risk',
-                    polished_item3_10q,
-                    'Summarize the following from the content you received: ',
-                    'Main Strategies that the company is going to use',
-                    'Main Market or Company Risks',
-                    'Main Merger and Acquisition activities that have finalized or are being considered',
-                    'New Organic Growth initiatives',
-                    'Macroeconomics opportunities and concerns',
-                    'If you do not find the corresponding data and say you do not find the data.'
-                ])
-
-                financial_report_prompt_10Q = '\n'.join([
-                    'You are a financial analyst and you are going to read Financial Statements and Supplementary Data of a 10-Q report from a company. The data is as follows and contains the current year and previous year or years data.',
-                    polished_item1_10q,
-                    'Find the corresponding metric, Origination Dollar, Total Receivables, and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-                    'Find the corresponding metric, Revenue, Net Interest Margin total in dollar terms and per dollar receivable term, Charge-off in percentage of receivables, Operation expense in dollar terms and per dollar receivable, EBITDA, Cost of Fund,and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
-                    'Main Merger and Acquisition activities that have finalized or are being considered',
-                    'New Organic Growth initiatives',
-                    'Macroeconomics opportunities and concerns',
-                    'If you do not find the corresponding data and say you do not find the data.'
-                ])
-
+                # Load management prompt
+                management_prompt_10Q = management_prompt_gen(polished_item2_10q, polished_item3_10q, '', '10-Q')
+                
+                # Load financial metrics
+                financial_report_prompt_10Q = financial_prompt_gen(polished_item1_10q, '10-Q')
+                
                 completion = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[

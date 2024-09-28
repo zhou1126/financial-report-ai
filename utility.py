@@ -351,3 +351,94 @@ def html_removal(raw_source):
     source = BeautifulSoup(raw_source, 'html.parser')
     source = source.get_text("\n\n")
     return source 
+
+def starter_prompt(content, report_type):
+    if report_type == '10-K':
+        start_prompt = '\n'.join([
+                    f'You are a financial analyst and you are going to read selected chapters of a {report_type} report from a company. The following is the introduction of the company and the publish date of the {report_type}.',
+                    content,
+                    'Summarize the following from the content you received with a title of "Basic information about the form and company": ',
+                    'Company Name: ',
+                    'Company Address: ',
+                    'Trading Symbol(s): ',
+                    'Name of each exchange on which registered: ',
+                    'Commission File Number: ',
+                    'For the Quarterly Period Ended: ',
+                ])
+    elif report_type == '10-Q':
+        start_prompt = '\n'.join([
+                    f'You are a financial analyst and you are going to read selected chapters of a {report_type} report from a company. The following is the introduction of the company and the publish date of the {report_type}.',
+                    content,
+                    'Summarize the following from the content you received: ',
+                    'Company Name: ',
+                    'Company Address: ',
+                    'Trading Symbol(s): ',
+                    'Name of each exchange on which registered: ',
+                    'Commission File Number: ',
+                    'For the Quarterly Period Ended: '
+                ])
+    else:
+        start_prompt = 'Please show we did not receive any information'
+    return start_prompt
+
+def management_prompt_gen(content1, content2, content3, report_type):
+    if report_type == '10-K':
+        return_prompt = '\n'.join([f"As a seasoned financial analyst, you've been tasked with reviewing key sections of a company's latest {report_type} report. You've carefully examined Item 1a (Risk Factors), Item 7 (Management's Discussion and Analysis), and Item 7a (Quantitative and Qualitative Disclosures About Market Risk). Based on your analysis, please provide insights on the following areas:",
+                                content1,
+                                "Management's Discussion and Analysis:",
+                                content2,
+                                "Quantitative and Qualitative Disclosures About Market Risk:",
+                                content3,
+                                "In your professional opinion, please highlight:",
+                                "1. The company's core strategic initiatives for the upcoming year",
+                                "2. Critical risks facing the company or its market",
+                                "3. Recent or potential M&A activity that could impact the company's trajectory",
+                                "4. Promising organic growth opportunities the company is pursuing",
+                                "5. Relevant macroeconomic factors that could affect the company's performance",
+                                "Please note any areas where information is limited or unavailable in your analysis. Your insights will be crucial for our investment decision-making process."
+                                ])
+    elif report_type == '10-Q':
+        content3 = ''
+        return_prompt = '\n'.join([
+                    f'You are a financial analyst and you are going to read selected chapters of a {report_type} report from a company. The following is the Item 2, Management’s Discussion and Analysis of Financial Condition and Results of Operations.',
+                    content1,
+                    'Item 3 Quantitative and Qualitative Disclosures About Market Risk',
+                    content2,
+                    'Summarize the following from the content you received: ',
+                    'Main Strategies that the company is going to use',
+                    'Main Market or Company Risks',
+                    'Main Merger and Acquisition activities that have finalized or are being considered',
+                    'New Organic Growth initiatives',
+                    'Macroeconomics opportunities and concerns',
+                    'If you do not find the corresponding data and say you do not find the data.'
+                ])
+    else:
+        return_prompt = 'Please show we did not receive any information'
+    return return_prompt
+
+def financial_prompt_gen(content, report_type):
+    if report_type == '10-K':
+        return_prompt = '\n'.join([
+                    f'You are a financial analyst and you are going to read Financial Statements and Supplementary Data of a {report_type} report from a company. The data is as follows and contains the current year and previous year or years data.',
+                    content,
+                    'Find the corresponding metric, Origination Dollar, Total Receivables, and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
+                    'Find the corresponding metric, Revenue, Net Interest Margin total in dollar terms and per dollar receivable term, Charge-off in percentage of receivables, Operation expense in dollar terms and per dollar receivable, EBITDA, Cost of Fund,and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
+                    'Main Merger and Acquisition activities that have finalized or are being considered',
+                    'New Organic Growth initiatives',
+                    'Macroeconomics opportunities and concerns',
+                    'If you do not find the corresponding data and say you do not find the data.'
+                ])
+    elif report_type == '10-Q':
+        return_prompt = '\n'.join([
+                    f'You are a financial analyst and you are going to read Financial Statements and Supplementary Data of a {report_type} report from a company. The data is as follows and contains the current year and previous year or years data.',
+                    content,
+                    'Find the corresponding metric, Origination Dollar, Total Receivables, and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
+                    'Find the corresponding metric, Revenue, Net Interest Margin total in dollar terms and per dollar receivable term, Charge-off in percentage of receivables, Operation expense in dollar terms and per dollar receivable, EBITDA, Cost of Fund,and analyze the Year-Over-Year and Quarter-Over-Quarter growth trend',
+                    'Main Merger and Acquisition activities that have finalized or are being considered',
+                    'New Organic Growth initiatives',
+                    'Macroeconomics opportunities and concerns',
+                    'If you do not find the corresponding data and say you do not find the data.'
+                ])
+    else:
+        return_prompt = 'Please show we did not receive any information'
+    return return_prompt
