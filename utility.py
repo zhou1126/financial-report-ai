@@ -120,6 +120,9 @@ def item_extraction_10K(txt_data):
     test_df.replace('\.','',regex=True,inplace=True)
     test_df.replace('>','',regex=True,inplace=True)
 
+    print('debug')
+    print(test_df)
+
     # Initialize lists to store the cleaned data
     cleaned_items = []
     cleaned_starts = []
@@ -145,6 +148,9 @@ def item_extraction_10K(txt_data):
                 if row['start'] > last_end:
                     # For item2, check if it starts at least 100000 after item1
                     if item == 'item1b' and last_item == 'item1a' and row['start'] < last_end + 100000:
+                        continue
+
+                    if item == 'item9a' and last_item == 'item8' and row['start'] < last_end + 10000:
                         continue
                     
                     # Add the item to the cleaned data
@@ -479,3 +485,27 @@ def financial_analysis_report(prompt1, prompt2, prompt3):
     report_results = generate_analysis(prompt3)
 
     return start_results, management_results, report_results
+
+def process_report(report_type, right_txt):
+    def extract_and_polish(extraction_func, txt):
+        raw_items = extraction_func(txt)
+        return [html_removal(item) for item in raw_items]
+
+    def generate_prompts(polished_items, report_type):
+        start_prompt = starter_prompt(polished_items[0], report_type)
+        management_prompt = management_prompt_gen(*polished_items[1:-1], report_type)
+        financial_prompt = financial_prompt_gen(polished_items[-1], report_type)
+        return start_prompt, management_prompt, financial_prompt
+
+    if report_type == '10-K':
+        extraction_func = item_extraction_10K
+        items = extract_and_polish(extraction_func, right_txt[0])
+        prompts = generate_prompts(items, '10-K')
+    elif report_type == '10-Q':
+        extraction_func = item_extraction_10Q
+        items = extract_and_polish(extraction_func, right_txt[0])
+        prompts = generate_prompts(items, '10-Q')
+    else:
+        raise ValueError(f"Unsupported report type: {report_type}")
+
+    return financial_analysis_report(*prompts)

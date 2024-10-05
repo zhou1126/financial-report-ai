@@ -8,7 +8,7 @@ account_email = 'zhou60302@gmail.com'
 year = 2024
 after_date, before_date = get_dates_for_year(year)
 report_type = '10-K'
-ticker = 'COF'
+ticker = 'NVDA'
 
 # Yixiang cases
 # 'OMF', 'DFS', 'COF'
@@ -56,7 +56,7 @@ for r_txt in right_txt[0:1]:
         polished_7 = html_removal(item7_10k_raw)
         polished_7a = html_removal(item7a_10k_raw)
         polished_8 = html_removal(item8_10k_raw)
-        # print(polished_7)
+        print(polished_8)
     elif report_type == '10-Q':
         start_10q_raw, item1_10q_raw, item2_10q_raw, item3_10q_raw = item_extraction_10Q(r_txt)
         polished_start_10q = html_removal(start_10q_raw)
